@@ -1,4 +1,4 @@
-# infrax
+# ✨ infrax
 
 Production-grade infrastructure blueprints for real-world applications.
 
