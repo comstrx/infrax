@@ -43,8 +43,13 @@ In a workflow — no token, the release's `SHA256SUMS` verify it:
 - uses: comstrx/infrax@v0.2.1
 - run: infrax -s light ci release
   env:
-    JSON_ENV: ${{ toJSON(secrets) }}
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    POSTGRESQL_PASSWORD: ${{ secrets.POSTGRESQL_PASSWORD }}
+    # … every secret the stack needs, by name
 ```
+
+A private repo may hand over every secret at once with `JSON_ENV: ${{ toJSON(secrets) }}` — infrax admits only the keys it reads. A public repo holds any run that dumps the whole `secrets` context for approval, so name them.
 
 ## Declare
 
