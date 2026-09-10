@@ -13,9 +13,7 @@ secretEnv: {}
 
 dataPath: /data
 
-probe:
-  tcpSocket:
-    port: 5432
+probe: {}
 
 resources: {}
 

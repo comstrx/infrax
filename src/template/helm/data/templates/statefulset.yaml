@@ -53,11 +53,11 @@ spec:
             - name: tcp
               containerPort: {{ .Values.port }}
           readinessProbe:
-            {{- toYaml .Values.probe | nindent 12 }}
+            {{- include "data.probe" . | nindent 12 }}
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
-            {{- toYaml .Values.probe | nindent 12 }}
+            {{- include "data.probe" . | nindent 12 }}
             initialDelaySeconds: 60
             periodSeconds: 20
             failureThreshold: 6

@@ -25,6 +25,15 @@ securityContext:
     drop: [ALL]
 {{- end -}}
 
+{{- define "data.probe" -}}
+{{- if .Values.probe -}}
+{{- toYaml .Values.probe -}}
+{{- else -}}
+tcpSocket:
+  port: tcp
+{{- end -}}
+{{- end -}}
+
 {{- define "data.root" -}}
 - name: ROOT_USER
   valueFrom:

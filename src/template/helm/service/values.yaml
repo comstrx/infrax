@@ -15,16 +15,8 @@ health: /health
 
 env: {}
 
-processes:
-  web:
-    command: []
-    port: 8080
-    route: ""
-    replicas: 1
-    grace: 30
-    resources:
-      requests: { cpu: 50m, memory: 64Mi }
-      limits: { memory: 256Mi }
+# the seed names every process; a default here would merge into a service that never declared it
+processes: {}
 
 autoscaling:
   min: 2
