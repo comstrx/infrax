@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+    tags: [ "v*" ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Test
+        run: bash src/main.sh test --check
+
+  stacks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build
+        run: bash src/main.sh build
+
+      - name: Tofu stacks
+        run: |
+          target/dev/infrax.sh --repo tests/fixture tofu fmt -check
+          target/dev/infrax.sh --repo tests/fixture tofu validate
+
+  matrix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build
+        run: bash src/main.sh build
+
+      - name: Render matrix
+        env:
+          REGISTRY: registry.probe.test
+          POSTGRESQL_PASSWORD: probe
+          REDIS_PASSWORD: probe
+          PGADMIN4_PASSWORD: probe
+          TOOLS_PASSWORD: probe
+        run: target/dev/infrax.sh --repo tests/fixture ci matrix
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [ test, stacks, matrix ]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Tag matches the bundle version
+        run: '[[ "${GITHUB_REF_NAME}" == "$(bash src/main.sh --tag)" ]] || { echo "tag ${GITHUB_REF_NAME} ≠ $(bash src/main.sh --tag)"; exit 1; }'
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash src/main.sh release
