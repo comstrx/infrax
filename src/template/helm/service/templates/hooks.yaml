@@ -127,7 +127,6 @@ spec:
         {{- include "service.selector" (merge (dict "component" "migrate") $root) | nindent 8 }}
     spec:
       restartPolicy: Never
-      serviceAccountName: {{ $name }}
       automountServiceAccountToken: false
       enableServiceLinks: false
       {{- include "service.pullSecrets" $root | nindent 6 }}
