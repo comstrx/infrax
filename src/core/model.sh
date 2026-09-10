@@ -159,11 +159,20 @@ service_hosts () {
     done
 
 }
+service_host () {
+
+    local hosts=()
+
+    mapfile -t hosts < <(service_hosts "${1:?service_host needs a service}")
+
+    printf '%s' "${hosts[0]:-}"
+
+}
 service_url () {
 
     local service="${1:?service_url needs a service}" host=""
 
-    read -r host < <(service_hosts "${service}") || true
+    host="$(service_host "${service}")"
 
     if [[ -n "${host}" ]]; then
 

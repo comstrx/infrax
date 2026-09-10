@@ -8,7 +8,7 @@ load_target () {
 
     app_service "${service}" >/dev/null
 
-    read -r host < <(service_hosts "${service}") || true
+    host="$(service_host "${service}")"
 
     [[ -n "${host}" ]] || die "'${service}' answers on no public host — load reaches a service through its edge"
 

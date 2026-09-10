@@ -165,7 +165,7 @@ audit_edge () {
 
     for service in ${SERVICES:-}; do
 
-        read -r host < <(service_hosts "${service}") || true
+        host="$(service_host "${service}")"
 
         [[ -n "${host}" ]] || continue
 
@@ -211,7 +211,7 @@ audit_targets_of () {
 
     for service in ${SERVICES:-}; do
 
-        read -r host < <(service_hosts "${service}") || true
+        host="$(service_host "${service}")"
 
         [[ -n "${host}" ]] || continue
 
