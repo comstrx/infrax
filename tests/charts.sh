@@ -42,6 +42,23 @@ test_issuer_omits_an_empty_email () {
     assert_contains "$(chart_render gateway --set tlsEnabled=true --set sslEmail=ops@probe.test --set-json 'hostnames=["a.probe.test"]')" 'email: "ops@probe.test"' "an email renders quoted"
 
 }
+test_hooks_never_wait_on_what_sync_creates () {
+
+    local values="" jobs=""
+
+    values="$(mktemp)"
+
+    printf 'name: probe\nmigrate:\n  command: [php, artisan, migrate]\nprovision:\n  - {module: postgresql, key: POSTGRESQL, image: "postgres:18", user: 70, host: postgresql, port: 5432, extensions: ""}\n' > "${values}"
+
+    jobs="$(chart_render service -f "${values}" | awk 'BEGIN { RS = "---" } /kind: Job/')"
+
+    assert_contains "${jobs}" "name: probe-migrate" "the migration runs as a hook"
+    assert_contains "${jobs}" "name: probe-provision-postgresql" "the provision runs as a hook"
+    assert_lacks "${jobs}" "serviceAccountName" "a PreSync hook never names the service's own account — sync creates it, after every hook, on a first install"
+
+    rm -f "${values}"
+
+}
 test_service_renders_only_the_processes_it_declares () {
 
     local values="" out=""
