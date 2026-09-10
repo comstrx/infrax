@@ -1,0 +1,14 @@
+.env*
+.var*
+.secret*
+!.env*.example
+!.var*.example
+!.secret*.example
+target/
+.build/
+.infrax/
+.vscode/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.plan

@@ -1,0 +1,93 @@
+# Basics
+
+- name: 'triage'
+  color: 'FBCA04'
+  description: 'Needs initial review / classification'
+
+- name: 'bug'
+  color: 'D73A4A'
+  description: 'Something is not working'
+
+- name: 'enhancement'
+  color: 'A2EEEF'
+  description: 'New feature or improvement request'
+
+- name: 'workflow'
+  color: '1D76DB'
+  description: 'Workflows changes'
+
+- name: 'ci'
+  color: '0052CC'
+  description: 'CI pipeline and GitHub Actions dependency changes'
+
+- name: 'automation'
+  color: 'FF6B6B'
+  description: 'GitHub automation changes'
+
+- name: 'docs'
+  color: '0075CA'
+  description: 'Documentation changes'
+
+- name: 'security'
+  color: 'B60205'
+  description: 'Security policy and security-related changes'
+
+- name: 'release'
+  color: '0E8A16'
+  description: 'Changelog changes, release tracking'
+
+- name: 'tooling'
+  color: 'BFDADC'
+  description: 'Repo configs and editor tooling changes'
+
+- name: 'config'
+  color: 'C2E0C6'
+  description: 'Default settings and the secret manifest'
+
+# The Bundle
+
+- name: 'forge'
+  color: '5319E7'
+  description: 'The build system: src/main.sh and src/forge'
+
+- name: 'core'
+  color: '0B7A75'
+  description: 'Config, cli, payload and helpers under src/core'
+
+- name: 'modules'
+  color: 'FF9F1C'
+  description: 'Command modules under src/module'
+
+- name: 'tests'
+  color: 'D4C5F9'
+  description: 'Tests changes'
+
+# The Templates
+
+- name: 'templates'
+  color: 'C85A17'
+  description: 'Changes under src/template'
+
+- name: 'templates:runtime'
+  color: 'F9D0C4'
+  description: 'Service runtime profiles and their Dockerfiles'
+
+- name: 'templates:module'
+  color: 'F9D0C4'
+  description: 'Data and tool module definitions'
+
+- name: 'templates:helm'
+  color: 'F9D0C4'
+  description: 'Helm charts'
+
+- name: 'templates:argocd'
+  color: 'F9D0C4'
+  description: 'ArgoCD project, root and app-of-apps'
+
+- name: 'templates:tofu'
+  color: 'F9D0C4'
+  description: 'OpenTofu stacks and modules'
+
+- name: 'templates:docker'
+  color: 'F9D0C4'
+  description: 'Dockerfiles and the backup image'

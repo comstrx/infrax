@@ -1,0 +1,104 @@
+# Basics
+
+workflow:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+
+automation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/*.yml'
+          - '.github/CODEOWNERS'
+          - '.github/PULL_REQUEST_TEMPLATE.md'
+          - '.github/ISSUE_TEMPLATE/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'SECURITY.md'
+          - '.secret.example'
+
+release:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'CHANGELOG.md'
+
+tooling:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.editorconfig'
+          - '.gitattributes'
+          - '.gitignore'
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.env.example'
+          - '.secret.example'
+
+# The Bundle
+
+forge:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main.sh'
+          - 'src/forge/**'
+
+core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/core/**'
+
+modules:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/module/**'
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**'
+
+# The Templates
+
+templates:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/**'
+
+templates:runtime:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/runtime/**'
+
+templates:module:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/module/**'
+
+templates:helm:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/helm/**'
+
+templates:argocd:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/argocd/**'
+
+templates:tofu:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/tofu/**'
+
+templates:docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/template/docker/**'
+          - 'src/template/runtime/**/Dockerfile'

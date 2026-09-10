@@ -1,0 +1,13 @@
+*                       @comstrx
+
+/.github/               @comstrx
+/src/forge/             @comstrx
+/src/core/              @comstrx
+/src/module/            @comstrx
+/src/template/          @comstrx
+/tests/                 @comstrx
+
+/.env.example           @comstrx
+/.secret.example        @comstrx
+
+/*.md                   @comstrx
