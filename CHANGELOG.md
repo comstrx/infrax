@@ -6,6 +6,7 @@
 - The service chart carries no default `web` process for the same reason — a service that declares only a worker no longer grows a web Deployment.
 - The ClusterIssuer omits an empty `SSL_EMAIL` instead of rendering `null`, which cert-manager refused.
 - Chart tests render the payload's charts against these rules — kubeconform judges the schema, not what the api server refuses.
+- Tool installs fetch their archive to disk with `TOOL_RETRIES` retries before unpacking — a reset connection mid-download no longer fails a wall (`curl | tar` could not retry a half-read stream).
 
 ## 0.2.5
 

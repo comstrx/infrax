@@ -59,6 +59,15 @@ tool_bin () {
     fi
 
 }
+## fetch one release archive to disk, retried, then unpack the named binary — a reset connection never feeds tar half an archive
+tool_fetch () {
+
+    local url="${1:?Missing url}" dir="${2:?Missing dir}" name="${3:?Missing binary}"
+
+    curl -fsSL --retry "${TOOL_RETRIES}" --retry-all-errors --retry-delay 2 -o "${dir}/archive.tar.gz" "${url}" \
+        && tar xzf "${dir}/archive.tar.gz" -C "${dir}" "${name}"
+
+}
 tool_kubeconform () {
 
     local dir=""
@@ -68,8 +77,8 @@ tool_kubeconform () {
 
     dir="$(tmp_dir)"
 
-    curl -fsSL "${KUBECONFORM_RELEASES}/${KUBECONFORM_VERSION}/kubeconform-linux-$(tool_arch).tar.gz" \
-        | tar xz -C "${dir}" kubeconform || die "Cannot download kubeconform ${KUBECONFORM_VERSION}"
+    tool_fetch "${KUBECONFORM_RELEASES}/${KUBECONFORM_VERSION}/kubeconform-linux-$(tool_arch).tar.gz" "${dir}" kubeconform \
+        || die "Cannot download kubeconform ${KUBECONFORM_VERSION}"
 
     tool_bin "${dir}/kubeconform" kubeconform
 
@@ -85,8 +94,8 @@ tool_actionlint () {
 
     dir="$(tmp_dir)"
 
-    curl -fsSL "${ACTIONLINT_RELEASES}/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_$(tool_arch).tar.gz" \
-        | tar xz -C "${dir}" actionlint || die "Cannot download actionlint ${ACTIONLINT_VERSION}"
+    tool_fetch "${ACTIONLINT_RELEASES}/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_$(tool_arch).tar.gz" "${dir}" actionlint \
+        || die "Cannot download actionlint ${ACTIONLINT_VERSION}"
 
     tool_bin "${dir}/actionlint" actionlint
 
@@ -105,8 +114,8 @@ tool_gitleaks () {
 
     [[ "${arch}" != "amd64" ]] || arch=x64
 
-    curl -fsSL "${GITLEAKS_RELEASES}/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${arch}.tar.gz" \
-        | tar xz -C "${dir}" gitleaks || die "Cannot download gitleaks ${GITLEAKS_VERSION}"
+    tool_fetch "${GITLEAKS_RELEASES}/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${arch}.tar.gz" "${dir}" gitleaks \
+        || die "Cannot download gitleaks ${GITLEAKS_VERSION}"
 
     tool_bin "${dir}/gitleaks" gitleaks
 
@@ -126,8 +135,8 @@ tool_trivy () {
     [[ "${arch}" != "amd64" ]] || arch=64bit
     [[ "${arch}" != "arm64" ]] || arch=ARM64
 
-    curl -fsSL "${TRIVY_RELEASES}/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${arch}.tar.gz" \
-        | tar xz -C "${dir}" trivy || die "Cannot download trivy ${TRIVY_VERSION}"
+    tool_fetch "${TRIVY_RELEASES}/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${arch}.tar.gz" "${dir}" trivy \
+        || die "Cannot download trivy ${TRIVY_VERSION}"
 
     tool_bin "${dir}/trivy" trivy
 
