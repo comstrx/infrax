@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.5
+
+- `CVE_IGNORE` accepts reviewed findings by name (`CVE-…`, `GHSA-…`, space or comma separated) — the gate still prints them, marked accepted, and any finding not named still blocks. `CVE_ALLOW` stays the one-release override.
+- k3s installs a pinned release (`K3S_VERSION=v1.36.4+k3s1`) straight from GitHub instead of resolving a channel through update.k3s.io — reproducible, and deaf to that server's outages. Empty `K3S_VERSION` still follows the `K8S_VERSION` channel.
+
 ## 0.2.4
 
 - The Debian-based runtime images (laravel, python) take the distribution's security updates at build time — a base image a week old no longer ships a CRITICAL the archive has already fixed. The distroless finals (go, rust, node) move with their base.
