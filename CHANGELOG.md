@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.7
+
+- The migration hook runs on the namespace's default account with no token, like the provision hook — it named the service's own ServiceAccount, which sync creates only after every PreSync hook, so a first install waited on a pod that could never be admitted. Migrations read the database through their secrets, never through a cloud identity.
+
 ## 0.2.6
 
 - The data chart carries no default probe — Helm merged its `tcpSocket` into a module's own `exec`, and the api server refused the postgresql and mysql StatefulSets for holding two handlers. A module with no probe falls back to its port.
