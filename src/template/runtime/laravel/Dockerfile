@@ -15,6 +15,7 @@ RUN install-php-extensions \
     gd exif intl zip bcmath
 
 RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends libcap2-bin \
     && setcap -r /usr/local/bin/frankenphp \
     && apt-get purge -y libcap2-bin \
