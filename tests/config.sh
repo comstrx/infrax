@@ -136,6 +136,7 @@ manifests_are_disjoint_and_every_key_is_read () {
     export BUILD_DIR="${build}"
 
     assert_ok "the examples law holds" "${INFRAX_BIN}" --config "${file}" secrets example
+    assert_ok "the law holds with every root password set" env POSTGRESQL_PASSWORD=x MYSQL_PASSWORD=x REDIS_PASSWORD=x PGADMIN4_PASSWORD=x TOOLS_PASSWORD=x "${INFRAX_BIN}" --config "${file}" secrets example
 
     rm -rf "${file}" "${build}"
 

@@ -2,20 +2,26 @@
 
 ## secret resolution diagnostics — never prints values
 
+## the root password a module holds, if it holds one — every store does, a tool only when its module.env says ROOT_LOGIN=true
+secrets_password_of () {
+
+    local module="${1:?secrets_password_of needs a module}"
+
+    case "$(module_kind "${module}")" in
+        database | cache ) printf '%s_PASSWORD\n' "$(model_key "${module}")" ;;
+        tool             ) [[ "$(module_get "${module}" ROOT_LOGIN)" != "true" ]] || printf '%s_PASSWORD\n' "$(model_key "${module}")" ;;
+    esac
+
+}
 secrets_passwords () {
 
     local module=""
 
-    for module in $(model_modules "database cache"); do
+    for module in ${MODULES:-}; do
 
-        printf '%s_PASSWORD\n' "$(model_key "${module}")"
+        secrets_password_of "${module}"
 
-    done
-
-    for module in $(model_modules tool); do
-
-        [[ "$(module_get "${module}" PASSWORD)" != "true" ]] || printf '%s_PASSWORD\n' "$(model_key "${module}")"
-        [[ -z "$(module_get "${module}" HOST)" ]] || printf 'TOOLS_PASSWORD\n'
+        [[ "$(module_kind "${module}")" != "tool" || -z "$(module_get "${module}" HOST)" ]] || printf 'TOOLS_PASSWORD\n'
 
     done
 
@@ -154,16 +160,17 @@ secrets_mint () {
 ## law: the two examples are disjoint, and every key they name is read by the platform
 secrets_example () {
 
-    local key="" code="" shared="" unread=""
+    local key="" code="" shared="" unread="" module="" passwords=""
 
-    code="$(infrax_code | sed '/^infrax_manifest () {/,/^}/d' | sed '/^infrax_defaults () {/,/^}/d')"
+    code="$(infrax_code | sed '/^# @test /,$d' | sed '/^infrax_manifest () {/,/^}/d' | sed '/^infrax_defaults () {/,/^}/d')"
+    passwords=" $(for module in $(model_names module); do secrets_password_of "${module}"; done | paste -sd ' ' -) "
     shared="$(comm -12 <(infrax_defaults | sed -nE 's/^([A-Z][A-Z0-9_]*)=.*/\1/p' | sort) <(secret_keys | sort) | paste -sd ' ' -)"
 
     [[ -z "${shared}" ]] || die "A key lives in both examples — pick one home: ${shared}"
 
     while IFS= read -r key; do
 
-        [[ " ${FORGE_KEYS} " != *" ${key} "* ]] || continue
+        [[ " ${FORGE_KEYS} " != *" ${key} "* && "${passwords}" != *" ${key} "* ]] || continue
 
         grep -qE "\b${key}\b" <<< "${code}" || grep -rqE "\b${key}\b" "${TEMPLATE_DIR}" || unread+=" ${key}"
 

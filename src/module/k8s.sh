@@ -91,7 +91,7 @@ k8s_secret_tool () {
 
     local module="${1:?k8s_secret_tool needs a module}" file="" password=""
 
-    [[ "$(module_get "${module}" PASSWORD)" == "true" ]] || return 0
+    [[ "$(module_get "${module}" ROOT_LOGIN)" == "true" ]] || return 0
 
     password="$(secret_require "$(model_key "${module}")_PASSWORD")"
     file="$(tmp_file)"
