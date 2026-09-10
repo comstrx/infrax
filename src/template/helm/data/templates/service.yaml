@@ -1,0 +1,19 @@
+{{- $name := include "data.name" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+spec:
+  {{- if eq .Values.mode "managed" }}
+  type: ExternalName
+  externalName: {{ required "a managed module needs the address its cloud gave it" .Values.address }}
+  {{- else }}
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+  {{- end }}
+  ports:
+    - name: tcp
+      port: {{ .Values.port }}
+      targetPort: {{ .Values.port }}

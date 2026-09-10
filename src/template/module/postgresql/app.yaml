@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${SEED_NAME}-metrics
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: ${SEED_PROJECT}
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus-postgres-exporter
+    targetRevision: ${POSTGRES_EXPORTER_VERSION}
+    helm:
+      valuesObject:
+        podLabels:
+          infrax.io/peer: ${SEED_NAME}
+        config:
+          datasource:
+            host: ${SEED_NAME}
+            port: "${SEED_PORT}"
+            user: ${SEED_ROOT_USER}
+            database: postgres
+            passwordSecret:
+              name: ${SEED_NAME}-secrets
+              key: ROOT_PASSWORD
+            sslmode: ${SEED_SSLMODE}
+        serviceMonitor:
+          enabled: true
+          namespace: ${SEED_METRICS_NAMESPACE}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${SEED_NAMESPACE}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

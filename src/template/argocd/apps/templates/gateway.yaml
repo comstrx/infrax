@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: {{ .Values.project }}
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.branch }}
+    path: {{ .Values.deployPath }}/helm/gateway
+    helm:
+      valuesObject:
+        hostnames: {{ .Values.hostnames | toJson }}
+        sslEmail: {{ .Values.sslEmail | quote }}
+        tlsEnabled: {{ .Values.gatewayTls }}
+        dns01: {{ .Values.gatewayDns01 }}
+        edgeType: {{ .Values.edgeType | quote }}
+        edgeAnnotations: {{ .Values.edgeAnnotations | toJson }}
+        routeNamespaces:
+          - {{ .Values.namespace }}
+          {{- if .Values.observability.enabled }}
+          - {{ .Values.observability.namespace }}
+          {{- end }}
+        rateLimitPerMinute: {{ .Values.rateLimitPerMinute }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.gatewayNamespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

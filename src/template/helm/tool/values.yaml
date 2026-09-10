@@ -1,0 +1,28 @@
+name: ""
+image: ""
+port: 8080
+user: ""
+caps: []
+health: /
+target: ""
+
+env: {}
+secretEnv: {}
+
+files: {}
+filesPath: /config
+
+writable: []
+
+resources: {}
+
+route:
+  enabled: false
+  gateway: gateway
+  gatewayNamespace: gateway
+  sectionName: ""
+  hostnames: []
+  auth: ""
+  cidrs: []
+
+proxyNamespace: envoy-gateway-system

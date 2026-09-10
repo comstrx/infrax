@@ -1,0 +1,114 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: platform
+  labels:
+    release: {{ .Values.metricsRelease }}
+spec:
+  groups:
+    - name: platform
+      rules:
+        - alert: ServiceIsDown
+          expr: kube_deployment_status_replicas_available{namespace="{{ .Values.appNamespace }}"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ `{{ $labels.deployment }}` }} has no running replica"
+
+        - alert: ServiceIsCrashing
+          expr: increase(kube_pod_container_status_restarts_total{namespace="{{ .Values.appNamespace }}"}[15m]) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ `{{ $labels.pod }}` }} restarted more than three times in fifteen minutes"
+
+        - alert: ModuleIsDown
+          expr: kube_statefulset_status_replicas_ready{namespace="{{ .Values.appNamespace }}"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ `{{ $labels.statefulset }}` }} has no ready replica"
+
+        - alert: EdgeReturnsErrors
+          expr: |
+            sum(rate(envoy_http_downstream_rq_xx{envoy_response_code_class="5"}[5m]))
+              / clamp_min(sum(rate(envoy_http_downstream_rq_xx[5m])), 0.001) > 0.02
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "More than 2% of answered requests are server errors"
+
+        - alert: EdgeIsSlow
+          expr: |
+            histogram_quantile(0.95, sum(rate(envoy_http_downstream_rq_time_bucket[5m])) by (le)) > 1000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "The 95th percentile answer takes longer than a second"
+
+        - alert: QueueIsNotDraining
+          expr: redis_key_size > 5000
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ `{{ $labels.key }}` }} holds more than five thousand jobs"
+
+        - alert: DiskIsFillingUp
+          expr: |
+            node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.2
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ `{{ $labels.instance }}` }} has less than a fifth of its disk left"
+
+        - alert: VolumeIsFillingUp
+          expr: |
+            kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes < 0.15
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ `{{ $labels.persistentvolumeclaim }}` }} has less than 15% left"
+
+        - alert: BackupFailed
+          expr: kube_job_status_failed{namespace="{{ .Values.appNamespace }}", job_name=~".+-backup-.+"} > 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "The backup job {{ `{{ $labels.job_name }}` }} failed"
+
+        - alert: BackupIsMissing
+          expr: |
+            time() - max by (cronjob) (label_replace(kube_job_status_completion_time{namespace="{{ .Values.appNamespace }}", job_name=~".+-backup-.+"}, "cronjob", "$1", "job_name", "(.+-backup)-.+")) > 129600
+          for: 30m
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ `{{ $labels.cronjob }}` }} has not completed a backup in a day and a half"
+
+        - alert: DatabaseIsUnreachable
+          expr: (pg_up == 0) or (mysql_up == 0)
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "A database stopped answering its exporter"
+{{- if .Values.tls }}
+
+        - alert: CertificateExpiresSoon
+          expr: |
+            (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 14
+          for: 1h
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ `{{ $labels.name }}` }} expires in less than fourteen days"
+{{- end }}

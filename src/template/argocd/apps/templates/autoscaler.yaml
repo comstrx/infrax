@@ -1,0 +1,38 @@
+{{- if .Values.autoscalerEnabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-autoscaler
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: {{ .Values.project }}
+  source:
+    repoURL: https://kubernetes.github.io/autoscaler
+    chart: cluster-autoscaler
+    targetRevision: {{ .Values.autoscalerVersion }}
+    helm:
+      valuesObject:
+        image:
+          tag: {{ .Values.autoscalerImageTag }}
+        autoDiscovery:
+          clusterName: {{ .Values.clusterName }}
+        awsRegion: {{ .Values.region }}
+        rbac:
+          serviceAccount:
+            name: cluster-autoscaler
+            annotations:
+              eks.amazonaws.com/role-arn: {{ .Values.autoscalerRoleArn }}
+        extraArgs:
+          balance-similar-node-groups: true
+          skip-nodes-with-local-storage: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+{{- end }}

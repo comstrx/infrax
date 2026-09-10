@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tool
+description: One admin tool — its workload, its gated route and the only doors it opens
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

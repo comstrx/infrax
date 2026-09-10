@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ${PROJECT}
+  namespace: ${ARGOCD_NAMESPACE}
+spec:
+  description: ${PROJECT} platform
+  sourceRepos:
+    - ${GIT_REPO_URL}
+    - docker.io/envoyproxy
+    - docker.io/envoyproxy/*
+    - quay.io/jetstack/charts
+    - https://kubernetes-sigs.github.io/metrics-server/
+    - https://kubernetes.github.io/autoscaler
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+  destinations:
+    - namespace: ${ARGOCD_NAMESPACE}
+      server: https://kubernetes.default.svc
+    - namespace: ${K8S_NAMESPACE}
+      server: https://kubernetes.default.svc
+    - namespace: ${GATEWAY_NAMESPACE}
+      server: https://kubernetes.default.svc
+    - namespace: ${ENVOY_NAMESPACE}
+      server: https://kubernetes.default.svc
+    - namespace: ${CERT_MANAGER_NAMESPACE}
+      server: https://kubernetes.default.svc
+    - namespace: ${OBSERVABILITY_NAMESPACE}
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+    - group: rbac.authorization.k8s.io
+      kind: "*"
+    - group: admissionregistration.k8s.io
+      kind: "*"
+    - group: apiregistration.k8s.io
+      kind: APIService
+    - group: cert-manager.io
+      kind: "*"
+    - group: acme.cert-manager.io
+      kind: "*"
+    - group: gateway.networking.k8s.io
+      kind: "*"
+    - group: gateway.envoyproxy.io
+      kind: "*"
+    - group: monitoring.coreos.com
+      kind: "*"

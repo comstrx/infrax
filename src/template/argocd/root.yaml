@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: ${ARGOCD_NAMESPACE}
+spec:
+  project: ${PROJECT}
+  source:
+    repoURL: ${GIT_REPO_URL}
+    targetRevision: ${GIT_BRANCH}
+    path: ${DEPLOY_PATH}/argocd/apps
+    helm:
+      valuesObject:
+        project: ${PROJECT}
+        repoURL: ${GIT_REPO_URL}
+        branch: ${GIT_BRANCH}
+        stack: ${STACK}
+        imageTag: "${IMAGE_TAG}"
+        namespace: ${K8S_NAMESPACE}
+        gatewayNamespace: ${GATEWAY_NAMESPACE}
+        deployPath: ${DEPLOY_PATH}
+        syncRetries: ${ARGOCD_SYNC_RETRIES}
+        services: ${APPS_SERVICES}
+        data: ${APPS_DATA}
+        tools: ${APPS_TOOLS}
+        hostnames: ${APPS_HOSTNAMES}
+        sslEmail: "${SSL_EMAIL}"
+        gatewayTls: ${GATEWAY_TLS}
+        gatewayDns01: ${GATEWAY_DNS01}
+        edgeType: "${EDGE_TYPE}"
+        edgeAnnotations: ${EDGE_ANNOTATIONS}
+        envoyNamespace: ${ENVOY_NAMESPACE}
+        certManagerNamespace: ${CERT_MANAGER_NAMESPACE}
+        rateLimitPerMinute: ${RATE_LIMIT_PER_MINUTE}
+        storageClass: ${VOLUME_CLASS}
+        envoyVersion: ${ENVOY_GATEWAY_VERSION}
+        certManagerVersion: ${CERT_MANAGER_VERSION}
+        metricsServerVersion: ${METRICS_SERVER_VERSION}
+        autoscalerVersion: ${AUTOSCALER_VERSION}
+        autoscalerImageTag: ${AUTOSCALER_IMAGE_TAG}
+        metricsServerEnabled: ${METRICS_SERVER_ENABLED}
+        autoscalerEnabled: ${AUTOSCALER_ENABLED}
+        clusterName: ${CLUSTER_NAME}
+        region: "${CLOUD_REGION}"
+        autoscalerRoleArn: "${AUTOSCALER_ROLE_ARN}"
+        observability:
+          enabled: ${OBSERVABILITY_ENABLED}
+          namespace: ${OBSERVABILITY_NAMESPACE}
+          host: "${GRAFANA_HOSTNAME}"
+          gateway: gateway
+          section: ${GATEWAY_SECTION}
+          retention: ${METRICS_RETENTION}
+          metricsSize: ${METRICS_SIZE}
+          logs: ${LOGS_ENABLED}
+          logsRelease: ${LOGS_RELEASE}
+          metricsRelease: ${METRICS_RELEASE}
+          logsSize: ${LOGS_SIZE}
+          logsRetention: ${LOGS_RETENTION_HOURS}
+          chatId: "${ALERT_CHAT_ID}"
+          stackVersion: ${PROMETHEUS_STACK_VERSION}
+          lokiVersion: ${LOKI_VERSION}
+          alloyVersion: ${ALLOY_VERSION}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${ARGOCD_NAMESPACE}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: ${ARGOCD_SYNC_RETRIES}
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m

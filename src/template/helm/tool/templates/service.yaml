@@ -1,0 +1,28 @@
+{{- $name := include "tool.name" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "tool.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+  ports:
+    - name: http
+      port: {{ .Values.port }}
+      targetPort: {{ .Values.port }}
+{{- if .Values.files }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-files
+  labels:
+    {{- include "tool.labels" . | nindent 4 }}
+data:
+  {{- range $file, $body := .Values.files }}
+  {{ $file }}: |
+    {{- $body | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloud-metrics
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: ${PROJECT}
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus-cloudwatch-exporter
+    targetRevision: ${CLOUDWATCH_EXPORTER_VERSION}
+    helm:
+      valuesObject:
+        serviceMonitor:
+          enabled: true
+          namespace: ${OBSERVABILITY_NAMESPACE}
+        config: |
+          region: ${AWS_REGION}
+          period_seconds: 300
+          metrics:
+            - aws_namespace: AWS/RDS
+              aws_metric_name: CPUUtilization
+              aws_dimensions: [DBInstanceIdentifier]
+              aws_statistics: [Average]
+            - aws_namespace: AWS/RDS
+              aws_metric_name: FreeStorageSpace
+              aws_dimensions: [DBInstanceIdentifier]
+              aws_statistics: [Average]
+            - aws_namespace: AWS/RDS
+              aws_metric_name: DatabaseConnections
+              aws_dimensions: [DBInstanceIdentifier]
+              aws_statistics: [Average]
+            - aws_namespace: AWS/RDS
+              aws_metric_name: ReadLatency
+              aws_dimensions: [DBInstanceIdentifier]
+              aws_statistics: [Average]
+            - aws_namespace: AWS/RDS
+              aws_metric_name: WriteLatency
+              aws_dimensions: [DBInstanceIdentifier]
+              aws_statistics: [Average]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${OBSERVABILITY_NAMESPACE}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

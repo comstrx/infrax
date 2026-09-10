@@ -1,0 +1,11 @@
+host: ""
+namespace: monitoring
+appNamespace: app
+metricsRelease: metrics
+gateway: gateway
+gatewayNamespace: gateway
+section: https
+proxyNamespace: envoy-gateway-system
+certManagerNamespace: cert-manager
+logs: true
+tls: true

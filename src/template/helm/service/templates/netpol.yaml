@@ -1,0 +1,51 @@
+{{- $name := include "service.name" . }}
+{{- $ports := list }}
+{{- range $process, $spec := .Values.processes }}
+{{- if $spec.port }}
+{{- $ports = append $ports $spec.port }}
+{{- end }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ $name }}
+    {{- if and .Values.route.enabled $ports }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.netpol.proxyNamespace }}
+      ports:
+        {{- range $ports }}
+        - port: {{ . }}
+        {{- end }}
+    {{- end }}
+    {{- if and .Values.netpol.callers $ports }}
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: {{ toJson .Values.netpol.callers }}
+      ports:
+        {{- range $ports }}
+        - port: {{ . }}
+        {{- end }}
+    {{- end }}
+    {{- with .Values.netpol.metricsNamespace }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+    {{- end }}

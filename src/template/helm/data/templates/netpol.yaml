@@ -1,0 +1,34 @@
+{{- if eq .Values.mode "cluster" }}
+{{- $name := include "data.name" . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: {{ toJson (concat .Values.clients (list (printf "%s-backup" $name))) }}
+        - podSelector:
+            matchLabels:
+              infrax.io/peer: {{ $name }}
+      ports:
+        - port: {{ .Values.port }}
+    {{- with .Values.metricsNamespace }}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . }}
+      ports:
+        - port: {{ $.Values.port }}
+    {{- end }}
+{{- end }}

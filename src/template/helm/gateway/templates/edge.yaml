@@ -1,0 +1,15 @@
+{{- if .Values.edgeType }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: edge
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        annotations:
+          {{- range $key, $value := .Values.edgeAnnotations }}
+          {{ $key }}: {{ $value | quote }}
+          {{- end }}
+{{- end }}

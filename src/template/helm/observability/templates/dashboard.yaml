@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-dashboard
+  labels:
+    grafana_dashboard: "1"
+data:
+  platform.json: |
+    {
+      "title": "Platform",
+      "uid": "platform",
+      "tags": ["platform"],
+      "timezone": "browser",
+      "refresh": "30s",
+      "time": { "from": "now-6h", "to": "now" },
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Requests answered per second, by class",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum by (envoy_response_code_class) (rate(envoy_http_downstream_rq_xx[5m]))",
+              "legendFormat": "{{ `{{envoy_response_code_class}}xx` }}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Share of answers that are server errors",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 } },
+          "targets": [
+            {
+              "expr": "sum(rate(envoy_http_downstream_rq_xx{envoy_response_code_class=\"5\"}[5m])) / clamp_min(sum(rate(envoy_http_downstream_rq_xx[5m])), 0.001)",
+              "legendFormat": "5xx"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "How long an answer takes",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "fieldConfig": { "defaults": { "unit": "ms" } },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(envoy_http_downstream_rq_time_bucket[5m])) by (le))",
+              "legendFormat": "p95"
+            },
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(envoy_http_downstream_rq_time_bucket[5m])) by (le))",
+              "legendFormat": "p50"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Jobs waiting in the queue",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            { "expr": "redis_key_size", "legendFormat": "{{ `{{key}}` }}" }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Replicas serving",
+          "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
+          "targets": [
+            {
+              "expr": "kube_deployment_status_replicas_available{namespace=\"{{ .Values.appNamespace }}\"}",
+              "legendFormat": "{{ `{{deployment}}` }}"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Hours since the last backup",
+          "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "h", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 36 } ] } } },
+          "targets": [
+            {
+              "expr": "(time() - max(kube_job_status_completion_time{namespace=\"{{ .Values.appNamespace }}\", job_name=~\".+-backup-.+\"})) / 3600",
+              "legendFormat": "age"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Days of certificate left",
+          "gridPos": { "h": 6, "w": 8, "x": 16, "y": 16 },
+          "fieldConfig": { "defaults": { "unit": "d", "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 15 } ] } } },
+          "targets": [
+            {
+              "expr": "min(certmanager_certificate_expiration_timestamp_seconds - time()) / 86400",
+              "legendFormat": "{{ `{{name}}` }}"
+            }
+          ]
+        }
+      ]
+    }

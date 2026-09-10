@@ -1,0 +1,269 @@
+{{- if .Values.observability.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.observability.metricsRelease }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: {{ .Values.project }}
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: {{ .Values.observability.stackVersion }}
+    helm:
+      valuesObject:
+        crds:
+          enabled: true
+        kubeControllerManager:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+        prometheus:
+          prometheusSpec:
+            retention: {{ .Values.observability.retention }}
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: [ReadWriteOnce]
+                  storageClassName: {{ .Values.storageClass }}
+                  resources:
+                    requests:
+                      storage: {{ .Values.observability.metricsSize }}
+        alertmanager:
+          {{- if .Values.observability.chatId }}
+          alertmanagerSpec:
+            secrets: [alert-sink]
+          {{- end }}
+          config:
+            route:
+              receiver: sink
+              group_by: [alertname, namespace]
+              group_wait: 30s
+              group_interval: 5m
+              repeat_interval: 12h
+            receivers:
+              - name: "null"
+              - name: sink
+                {{- if .Values.observability.chatId }}
+                telegram_configs:
+                  - bot_token_file: /etc/alertmanager/secrets/alert-sink/token
+                    chat_id: {{ .Values.observability.chatId }}
+                    api_url: https://api.telegram.org
+                    parse_mode: HTML
+                    message: '{{ `{{ template "telegram.default.message" . }}` }}'
+                {{- end }}
+        grafana:
+          admin:
+            existingSecret: grafana-admin
+            userKey: username
+            passwordKey: password
+          grafana.ini:
+            server:
+              root_url: https://{{ .Values.observability.host }}
+            users:
+              viewers_can_edit: false
+          sidecar:
+            dashboards:
+              enabled: true
+              searchNamespace: ALL
+          {{- if .Values.observability.logs }}
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              access: proxy
+              url: http://{{ .Values.observability.logsRelease }}-loki.{{ .Values.observability.namespace }}.svc.cluster.local:3100
+              jsonData:
+                maxLines: 1000
+          {{- end }}
+          persistence:
+            enabled: true
+            storageClassName: {{ .Values.storageClass }}
+            size: 5Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.observability.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: observability
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: {{ .Values.project }}
+  source:
+    repoURL: {{ .Values.repoURL }}
+    targetRevision: {{ .Values.branch }}
+    path: {{ .Values.deployPath }}/helm/observability
+    helm:
+      valuesObject:
+        host: {{ .Values.observability.host | quote }}
+        namespace: {{ .Values.observability.namespace }}
+        appNamespace: {{ .Values.namespace }}
+        metricsRelease: {{ .Values.observability.metricsRelease }}
+        gateway: {{ .Values.observability.gateway }}
+        gatewayNamespace: {{ .Values.gatewayNamespace }}
+        section: {{ .Values.observability.section }}
+        tls: {{ .Values.gatewayTls }}
+        certManagerNamespace: {{ .Values.certManagerNamespace }}
+        proxyNamespace: {{ .Values.envoyNamespace }}
+        logs: {{ .Values.observability.logs }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.observability.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- if .Values.observability.logs }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.observability.logsRelease }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: {{ .Values.project }}
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki
+    targetRevision: {{ .Values.observability.lokiVersion }}
+    helm:
+      valuesObject:
+        deploymentMode: SingleBinary
+        loki:
+          auth_enabled: false
+          commonConfig:
+            replication_factor: 1
+          schemaConfig:
+            configs:
+              - from: "2024-04-01"
+                store: tsdb
+                object_store: filesystem
+                schema: v13
+                index:
+                  prefix: index_
+                  period: 24h
+          storage:
+            type: filesystem
+          limits_config:
+            retention_period: {{ .Values.observability.logsRetention }}
+          compactor:
+            retention_enabled: true
+            delete_request_store: filesystem
+        singleBinary:
+          replicas: 1
+          persistence:
+            enabled: true
+            storageClass: {{ .Values.storageClass }}
+            size: {{ .Values.observability.logsSize }}
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+        lokiCanary:
+          enabled: false
+        test:
+          enabled: false
+        gateway:
+          enabled: false
+        backend:
+          replicas: 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.observability.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: log-shipper
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: {{ .Values.project }}
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: alloy
+    targetRevision: {{ .Values.observability.alloyVersion }}
+    helm:
+      valuesObject:
+        controller:
+          type: daemonset
+        alloy:
+          configMap:
+            content: |
+              discovery.kubernetes "pods" {
+                role = "pod"
+              }
+
+              discovery.relabel "pods" {
+                targets = discovery.kubernetes.pods.targets
+
+                rule {
+                  source_labels = ["__meta_kubernetes_namespace"]
+                  target_label  = "namespace"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_name"]
+                  target_label  = "pod"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_container_name"]
+                  target_label  = "container"
+                }
+                rule {
+                  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+                  target_label  = "app"
+                }
+              }
+
+              loki.source.kubernetes "pods" {
+                targets    = discovery.relabel.pods.output
+                forward_to = [loki.write.default.receiver]
+              }
+
+              loki.write "default" {
+                endpoint {
+                  url = "http://{{ .Values.observability.logsRelease }}-loki.{{ .Values.observability.namespace }}.svc.cluster.local:3100/loki/api/v1/push"
+                }
+              }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.observability.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
+{{- end }}

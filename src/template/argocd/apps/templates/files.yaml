@@ -1,0 +1,5 @@
+{{- $root := . }}
+{{- range $path, $_ := .Files.Glob (printf "files/%s/*.yaml" .Values.stack) }}
+---
+{{ $root.Files.Get $path }}
+{{- end }}

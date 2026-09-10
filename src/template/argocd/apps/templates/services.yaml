@@ -1,0 +1,43 @@
+{{- $root := . }}
+{{- range .Values.services }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: {{ $root.Values.project }}
+  sources:
+    - repoURL: {{ $root.Values.repoURL }}
+      targetRevision: {{ $root.Values.branch }}
+      path: {{ $root.Values.deployPath }}/helm/service
+      helm:
+        releaseName: {{ . }}
+        valueFiles:
+          - $values/{{ $root.Values.deployPath }}/helm/values/{{ . }}.{{ $root.Values.stack }}.yaml
+        {{- with $root.Values.imageTag }}
+        parameters:
+          - name: image.tag
+            value: {{ . | quote }}
+        {{- end }}
+    - repoURL: {{ $root.Values.repoURL }}
+      targetRevision: {{ $root.Values.branch }}
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $root.Values.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: {{ $root.Values.syncRetries }}
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

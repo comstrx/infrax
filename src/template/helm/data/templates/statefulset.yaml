@@ -1,0 +1,90 @@
+{{- if eq .Values.mode "cluster" }}
+{{- $name := include "data.name" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ $name }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $name }}
+        infrax.io/module: {{ $name }}
+      annotations:
+        checksum/init: {{ .Values.init | toYaml | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 60
+      {{- include "data.security" . | nindent 6 }}
+      containers:
+        - name: {{ $name }}
+          image: {{ .Values.image }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.env .Values.secretEnv }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $ref := .Values.secretEnv }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-secrets
+                  key: {{ $ref }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: tcp
+              containerPort: {{ .Values.port }}
+          readinessProbe:
+            {{- toYaml .Values.probe | nindent 12 }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            {{- toYaml .Values.probe | nindent 12 }}
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 6
+          {{- include "data.containerSecurity" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.dataPath }}
+            {{- if .Values.init }}
+            - name: init
+              mountPath: {{ .Values.initPath }}
+              readOnly: true
+            {{- end }}
+      {{- if .Values.init }}
+      volumes:
+        - name: init
+          configMap:
+            name: {{ $name }}-init
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ .Values.storage.class }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+{{- end }}

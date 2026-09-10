@@ -1,0 +1,22 @@
+{{- $root := . }}
+{{- $name := include "service.name" . }}
+{{- range $process, $spec := .Values.processes }}
+{{- if $spec.port }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ if eq $process "web" }}{{ $name }}{{ else }}{{ $name }}-{{ $process }}{{ end }}
+  labels:
+    {{- include "service.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $process }}
+spec:
+  selector:
+    {{- include "service.selector" (merge (dict "component" $process) $root) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $spec.port }}
+      targetPort: {{ $spec.port }}
+      appProtocol: {{ if eq $root.Values.probe "grpc" }}kubernetes.io/h2c{{ else }}http{{ end }}
+---
+{{- end }}
+{{- end }}

@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ${SEED_NAME}-metrics
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: ${SEED_PROJECT}
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: prometheus-mysql-exporter
+    targetRevision: ${MYSQL_EXPORTER_VERSION}
+    helm:
+      valuesObject:
+        podLabels:
+          infrax.io/peer: ${SEED_NAME}
+        mysql:
+          host: ${SEED_NAME}
+          port: ${SEED_PORT}
+          user: ${SEED_ROOT_USER}
+          existingPasswordSecret:
+            name: ${SEED_NAME}-secrets
+            key: ROOT_PASSWORD
+        serviceMonitor:
+          enabled: true
+          namespace: ${SEED_METRICS_NAMESPACE}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ${SEED_NAMESPACE}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

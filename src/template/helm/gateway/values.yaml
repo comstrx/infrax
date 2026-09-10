@@ -1,0 +1,9 @@
+hostnames: []
+sslEmail: ""
+tlsEnabled: true
+tlsSecret: gateway-tls
+dns01: false
+routeNamespaces: []
+rateLimitPerMinute: 3000
+edgeType: ""
+edgeAnnotations: {}

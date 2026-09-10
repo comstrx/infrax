@@ -1,0 +1,42 @@
+{{- $root := . }}
+{{- range $key, $spec := dict "data" (list "data" "0") "tools" (list "tool" "2") }}
+{{- $chart := index $spec 0 }}
+{{- $wave := index $spec 1 }}
+{{- range (index $root.Values $key | default list) }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $wave | quote }}
+spec:
+  project: {{ $root.Values.project }}
+  sources:
+    - repoURL: {{ $root.Values.repoURL }}
+      targetRevision: {{ $root.Values.branch }}
+      path: {{ $root.Values.deployPath }}/helm/{{ $chart }}
+      helm:
+        releaseName: {{ . }}
+        valueFiles:
+          - $values/{{ $root.Values.deployPath }}/helm/values/{{ . }}.{{ $root.Values.stack }}.yaml
+    - repoURL: {{ $root.Values.repoURL }}
+      targetRevision: {{ $root.Values.branch }}
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ $root.Values.namespace }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: {{ $root.Values.syncRetries }}
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 1m
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
+{{- end }}

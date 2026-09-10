@@ -1,0 +1,86 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${RESTORE_NAME}
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app.kubernetes.io/name: ${RESTORE_MODULE}-backup
+    app.kubernetes.io/component: restore
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ${RESTORE_MODULE}-backup
+        app.kubernetes.io/component: restore
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${RESTORE_MODULE}-backup
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: ${RESTORE_USER}
+        runAsGroup: ${RESTORE_USER}
+        fsGroup: ${RESTORE_USER}
+      initContainers:
+        - name: fetch
+          image: ${RESTORE_FETCH_IMAGE}
+          command: ${RESTORE_FETCH_COMMAND}
+          env: ${RESTORE_FETCH_ENV}
+          envFrom:
+            - secretRef:
+                name: backup-credentials
+                optional: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: work
+              mountPath: /work
+      containers:
+        - name: restore
+          image: ${RESTORE_IMAGE}
+          command: [sh, /scripts/restore.sh]
+          env:
+            - name: HOST
+              value: "${RESTORE_MODULE}"
+            - name: PORT
+              value: "${RESTORE_PORT}"
+            - name: SOURCE
+              value: "${RESTORE_SOURCE}"
+            - name: TARGET
+              value: "${RESTORE_TARGET}"
+            - name: STAMP
+              value: "${RESTORE_STAMP}"
+            - name: FILE
+              value: /work/${RESTORE_FILE}
+            - name: HOME
+              value: /tmp
+            - name: ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ${RESTORE_MODULE}-secrets
+                  key: ROOT_USER
+            - name: ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ${RESTORE_MODULE}-secrets
+                  key: ROOT_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: work
+              mountPath: /work
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: work
+          ${RESTORE_WORK}
+        - name: scripts
+          configMap:
+            name: ${RESTORE_MODULE}-scripts

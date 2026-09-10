@@ -1,0 +1,124 @@
+{{- if .Values.backup.enabled }}
+{{- $name := include "data.name" . }}
+{{- $backup := .Values.backup }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $name }}-backup
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+  {{- with $backup.account }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: false
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}-backup
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+spec:
+  schedule: {{ $backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: {{ $name }}-backup
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          serviceAccountName: {{ $name }}-backup
+          enableServiceLinks: false
+          {{- include "data.security" . | nindent 10 }}
+          initContainers:
+            - name: dump
+              image: {{ .Values.image }}
+              command: [sh, /scripts/backup.sh]
+              env:
+                - name: HOST
+                  value: {{ $name | quote }}
+                - name: PORT
+                  value: {{ .Values.port | quote }}
+                - name: DATABASES
+                  value: {{ join " " $backup.databases | quote }}
+                - name: OUT
+                  value: /work
+                - name: HOME
+                  value: /tmp
+                {{- include "data.root" . | nindent 16 }}
+              {{- include "data.containerSecurity" . | nindent 14 }}
+              resources:
+                requests: { cpu: 100m, memory: 128Mi }
+                limits: { memory: 1Gi }
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+                - name: scripts
+                  mountPath: /scripts
+          containers:
+            - name: upload
+              image: {{ $backup.uploader.image }}
+              command:
+                {{- toYaml $backup.uploader.command | nindent 16 }}
+              env:
+                - name: WORK
+                  value: /work
+                - name: PREFIX
+                  value: {{ $backup.prefix | quote }}
+                - name: KEEP_DAYS
+                  value: {{ $backup.keepDays | quote }}
+                - name: HOME
+                  value: /tmp
+                {{- range $key, $value := $backup.uploader.env }}
+                - name: {{ $key }}
+                  value: {{ $value | quote }}
+                {{- end }}
+              envFrom:
+                - secretRef:
+                    name: backup-credentials
+                    optional: true
+              {{- include "data.containerSecurity" . | nindent 14 }}
+              resources:
+                requests: { cpu: 50m, memory: 128Mi }
+                limits: { memory: 512Mi }
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+          volumes:
+            - name: work
+              {{- if eq $backup.target "volume" }}
+              persistentVolumeClaim:
+                claimName: {{ $name }}-backups
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
+            - name: scripts
+              configMap:
+                name: {{ $name }}-scripts
+{{- if eq $backup.target "volume" }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-backups
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false,SkipHealthCheck=true
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ $backup.storage.class }}
+  resources:
+    requests:
+      storage: {{ $backup.storage.size }}
+{{- end }}
+{{- end }}

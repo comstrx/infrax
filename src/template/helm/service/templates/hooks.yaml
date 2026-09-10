@@ -1,0 +1,151 @@
+{{- $root := . }}
+{{- $name := include "service.name" . }}
+{{- if or .Values.migrate.command .Values.provision }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-hook-config
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-3"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-3"
+data:
+  {{- range $key, $value := .Values.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+{{- range .Values.provision }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}-provision-{{ .module }}
+  labels:
+    {{- include "service.labels" $root | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-2"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        {{- include "service.selector" (merge (dict "component" "provision") $root) | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .user }}
+        runAsGroup: {{ .user }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: provision
+          image: {{ .image }}
+          command: [sh, /scripts/provision.sh]
+          env:
+            - name: HOST
+              value: {{ .host | quote }}
+            - name: PORT
+              value: {{ .port | quote }}
+            - name: EXTENSIONS
+              value: {{ .extensions | default "" | quote }}
+            - name: HOME
+              value: /tmp
+            - name: ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .module }}-secrets
+                  key: ROOT_USER
+            - name: ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .module }}-secrets
+                  key: ROOT_PASSWORD
+            - name: SERVICE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-bind
+                  key: {{ .key }}_USER
+            - name: SERVICE_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-bind
+                  key: {{ .key }}_DATABASE
+            - name: SERVICE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-bind
+                  key: {{ .key }}_PASSWORD
+          {{- include "service.containerSecurity" $root | nindent 10 }}
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+      volumes:
+        - name: scripts
+          configMap:
+            name: {{ .module }}-scripts
+{{- end }}
+{{- with .Values.migrate.command }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $name }}-migrate
+  labels:
+    {{- include "service.labels" $root | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 900
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        {{- include "service.selector" (merge (dict "component" "migrate") $root) | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ $name }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- include "service.pullSecrets" $root | nindent 6 }}
+      {{- include "service.podSecurity" $root | nindent 6 }}
+      containers:
+        - name: migrate
+          image: {{ include "service.image" $root }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          env:
+            {{- include "service.env" (dict "root" $root "process" "migrate" "port" $root.Values.port) | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ $name }}-hook-config
+            - secretRef:
+                name: {{ $name }}-secrets
+          {{- include "service.containerSecurity" $root | nindent 10 }}
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 768Mi }
+{{- end }}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gateway
+description: Edge — Gateway API listeners, TLS issuance, rate limiting
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

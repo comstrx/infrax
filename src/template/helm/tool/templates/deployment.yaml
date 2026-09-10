@@ -1,0 +1,101 @@
+{{- $name := include "tool.name" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "tool.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $name }}
+        {{- with .Values.target }}
+        infrax.io/peer: {{ . }}
+        {{- end }}
+      annotations:
+        checksum/files: {{ .Values.files | toYaml | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        {{- with .Values.user }}
+        runAsNonRoot: true
+        runAsUser: {{ . }}
+        runAsGroup: {{ . }}
+        fsGroup: {{ . }}
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ $name }}
+          image: {{ .Values.image }}
+          {{- if or .Values.env .Values.secretEnv }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- range $key, $ref := .Values.secretEnv }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-secrets
+                  key: {{ $ref }}
+            {{- end }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.port }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.health }}
+              port: {{ .Values.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.health }}
+              port: {{ .Values.port }}
+            initialDelaySeconds: 90
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+              {{- with .Values.caps }}
+              add: {{ toJson . }}
+              {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if or .Values.files .Values.writable }}
+          volumeMounts:
+            {{- if .Values.files }}
+            - name: files
+              mountPath: {{ .Values.filesPath }}
+              readOnly: true
+            {{- end }}
+            {{- range $index, $path := .Values.writable }}
+            - name: writable-{{ $index }}
+              mountPath: {{ $path }}
+            {{- end }}
+          {{- end }}
+      {{- if or .Values.files .Values.writable }}
+      volumes:
+        {{- if .Values.files }}
+        - name: files
+          configMap:
+            name: {{ $name }}-files
+        {{- end }}
+        {{- range $index, $path := .Values.writable }}
+        - name: writable-{{ $index }}
+          emptyDir: {}
+        {{- end }}
+      {{- end }}

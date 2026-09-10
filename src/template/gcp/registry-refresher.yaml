@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: registry-refresher
+  namespace: ${K8S_NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: registry-refresher
+  namespace: ${K8S_NAMESPACE}
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [pull-secret]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: registry-refresher
+  namespace: ${K8S_NAMESPACE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: registry-refresher
+subjects:
+  - kind: ServiceAccount
+    name: registry-refresher
+    namespace: ${K8S_NAMESPACE}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: registry-refresher
+  namespace: ${K8S_NAMESPACE}
+spec:
+  schedule: "${REGISTRY_REFRESH_SCHEDULE}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      ttlSecondsAfterFinished: 21600
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: registry-refresher
+          containers:
+            - name: refresh
+              image: ${AUDIT_IMAGE}
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  TOKEN="$(curl -sSf -H 'Metadata-Flavor: Google' '${GCP_METADATA_URL}/instance/service-accounts/default/token' | sed -n 's/.*"access_token":"\([^"]*\)".*/\1/p')"
+                  AUTH="$(printf 'oauth2accesstoken:%s' "$TOKEN" | base64 | tr -d '\n')"
+                  CONFIG="$(printf '{"auths":{"%s":{"username":"oauth2accesstoken","password":"%s","auth":"%s"}}}' "${REGISTRY_HOST}" "$TOKEN" "$AUTH" | base64 | tr -d '\n')"
+                  SA=/var/run/secrets/kubernetes.io/serviceaccount
+                  curl -sSf --cacert "$SA/ca.crt" \
+                    -H "Authorization: Bearer $(cat "$SA/token")" \
+                    -H "Content-Type: application/merge-patch+json" \
+                    -X PATCH "https://kubernetes.default.svc/api/v1/namespaces/${K8S_NAMESPACE}/secrets/pull-secret" \
+                    -d "{\"data\":{\".dockerconfigjson\":\"$CONFIG\"}}" > /dev/null
+                  echo "pull-secret refreshed"
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { memory: 128Mi }

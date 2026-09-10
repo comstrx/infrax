@@ -1,0 +1,28 @@
+{{- $name := include "data.name" . }}
+{{- if .Values.scripts }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-scripts
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+data:
+  {{- range $file, $body := .Values.scripts }}
+  {{ $file }}: |
+    {{- $body | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.init }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}-init
+  labels:
+    {{- include "data.labels" . | nindent 4 }}
+data:
+  {{- range $file, $body := .Values.init }}
+  {{ $file }}: |
+    {{- $body | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,47 @@
+name: ""
+mode: cluster
+image: ""
+port: 5432
+user: 999
+address: ""
+
+command: []
+args: []
+
+env: {}
+secretEnv: {}
+
+dataPath: /data
+
+probe:
+  tcpSocket:
+    port: 5432
+
+resources: {}
+
+storage:
+  class: local-path
+  size: 10Gi
+
+clients: []
+metricsNamespace: ""
+
+scripts: {}
+init: {}
+initPath: /docker-entrypoint-initdb.d
+
+backup:
+  enabled: false
+  schedule: "0 3 * * *"
+  target: object
+  databases: []
+  prefix: ""
+  keepDays: 30
+  account: {}
+  uploader:
+    image: ""
+    command: []
+    env: {}
+  storage:
+    class: local-path
+    size: 20Gi

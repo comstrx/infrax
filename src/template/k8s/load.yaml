@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load
+  namespace: ${K8S_NAMESPACE}
+spec:
+  backoffLimit: 0
+  completions: ${LOAD_PODS}
+  parallelism: ${LOAD_PODS}
+  completionMode: Indexed
+  template:
+    spec:
+      restartPolicy: Never
+      hostAliases:
+        - ip: "${LOAD_TARGET_IP}"
+          hostnames: ["${LOAD_TARGET_HOST}"]
+      containers:
+        - name: k6
+          image: ${LOAD_IMAGE}
+          args: [run, /scripts/load.js, --summary-trend-stats, "avg,p(95),p(99),max", --no-usage-report]
+          env:
+            - name: LOAD_HOST
+              value: "https://${LOAD_TARGET_HOST}"
+            - name: LOAD_PATHS
+              value: "${LOAD_PATHS}"
+            - name: LOAD_RATE
+              value: "${LOAD_RATE_PER_POD}"
+            - name: LOAD_DURATION
+              value: "${LOAD_DURATION}"
+            - name: LOAD_RAMP
+              value: "${LOAD_RAMP}"
+            - name: LOAD_VUS
+              value: "${LOAD_VUS}"
+          resources:
+            requests:
+              cpu: "${LOAD_CPU}"
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+      volumes:
+        - name: script
+          configMap:
+            name: load-script

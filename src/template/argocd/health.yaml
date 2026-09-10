@@ -1,0 +1,41 @@
+data:
+  resource.customizations.health.argoproj.io_Application: |
+    hs = {}
+    hs.status = "Progressing"
+    hs.message = ""
+    if obj.status ~= nil then
+      if obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+    end
+    return hs
+  resource.customizations.health.cert-manager.io_Certificate: |
+    hs = {}
+    hs.status = "Healthy"
+    hs.message = "issuance is asynchronous — read it from cert-manager"
+    if obj.status ~= nil and obj.status.conditions ~= nil then
+      for i, condition in ipairs(obj.status.conditions) do
+        if condition.type == "Ready" then
+          hs.message = "Ready=" .. condition.status
+        end
+      end
+    end
+    return hs
+  resource.customizations.health.cert-manager.io_CertificateRequest: |
+    hs = {}
+    hs.status = "Healthy"
+    hs.message = "issuance is asynchronous — read it from cert-manager"
+    return hs
+  resource.customizations.health.acme.cert-manager.io_Order: |
+    hs = {}
+    hs.status = "Healthy"
+    hs.message = "acme order state: " .. tostring(obj.status ~= nil and obj.status.state or "unknown")
+    return hs
+  resource.customizations.health.acme.cert-manager.io_Challenge: |
+    hs = {}
+    hs.status = "Healthy"
+    hs.message = "acme challenge state: " .. tostring(obj.status ~= nil and obj.status.state or "unknown")
+    return hs

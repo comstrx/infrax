@@ -1,0 +1,72 @@
+name: ""
+runtime: ""
+
+image:
+  repository: ""
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+user: 65532
+port: 8080
+probe: http
+health: /health
+
+env: {}
+
+processes:
+  web:
+    command: []
+    port: 8080
+    route: ""
+    replicas: 1
+    grace: 30
+    resources:
+      requests: { cpu: 50m, memory: 64Mi }
+      limits: { memory: 256Mi }
+
+autoscaling:
+  min: 2
+  max: 5
+  cpu: 75
+
+rollout:
+  surge: 1
+  unavailable: 0
+
+storage:
+  enabled: false
+  class: local-path
+  size: 10Gi
+  mount: /data
+
+route:
+  enabled: false
+  gateway: gateway
+  gatewayNamespace: gateway
+  sectionName: ""
+  hostnames: []
+  responseHeaders:
+    set:
+      Strict-Transport-Security: max-age=31536000; includeSubDomains
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: DENY
+      Referrer-Policy: no-referrer
+    remove: [X-Powered-By]
+
+netpol:
+  proxyNamespace: envoy-gateway-system
+  metricsNamespace: ""
+  callers: []
+
+migrate:
+  command: []
+
+provision: []
+
+metrics:
+  path: ""
+
+serviceAccount:
+  annotations: {}

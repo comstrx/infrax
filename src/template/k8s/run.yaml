@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${RUN_NAME}
+  namespace: ${K8S_NAMESPACE}
+  labels:
+    app.kubernetes.io/name: ${RUN_SERVICE}
+    app.kubernetes.io/component: run
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: ${RUN_TTL}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ${RUN_SERVICE}
+        app.kubernetes.io/component: run
+    spec:
+      restartPolicy: Never
+      serviceAccountName: ${RUN_SERVICE}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      imagePullSecrets: ${RUN_PULL_SECRETS}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: ${RUN_USER}
+        runAsGroup: ${RUN_USER}
+        fsGroup: ${RUN_USER}
+      containers:
+        - name: run
+          image: ${RUN_IMAGE}
+          command: ${RUN_COMMAND}
+          env:
+            - name: INFRAX_SERVICE
+              value: "${RUN_SERVICE}"
+            - name: INFRAX_PROCESS
+              value: run
+            - name: PORT
+              value: "${RUN_PORT}"
+          envFrom:
+            - configMapRef:
+                name: ${RUN_SERVICE}-config
+            - secretRef:
+                name: ${RUN_SERVICE}-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests: { cpu: ${RUN_CPU}, memory: ${RUN_MEMORY} }
+            limits: { memory: ${RUN_MEMORY_LIMIT} }
+          volumeMounts: ${RUN_MOUNTS}
+      volumes: ${RUN_VOLUMES}

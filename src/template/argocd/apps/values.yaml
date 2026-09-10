@@ -1,0 +1,55 @@
+project: default
+repoURL: ""
+branch: main
+stack: ""
+imageTag: ""
+namespace: app
+gatewayNamespace: gateway
+deployPath: deploy
+syncRetries: 5
+
+services: []
+data: []
+tools: []
+
+hostnames: []
+sslEmail: ""
+gatewayTls: true
+gatewayDns01: false
+edgeType: ""
+edgeAnnotations: {}
+envoyNamespace: envoy-gateway-system
+certManagerNamespace: cert-manager
+rateLimitPerMinute: 3000
+storageClass: local-path
+
+envoyVersion: ""
+certManagerVersion: ""
+metricsServerVersion: ""
+autoscalerVersion: ""
+autoscalerImageTag: ""
+
+metricsServerEnabled: false
+autoscalerEnabled: false
+
+clusterName: ""
+region: ""
+autoscalerRoleArn: ""
+
+observability:
+  enabled: true
+  namespace: monitoring
+  host: ""
+  gateway: gateway
+  section: https
+  retention: 7d
+  metricsSize: 20Gi
+  logs: true
+  logsRelease: logs
+  metricsRelease: metrics
+  logsSize: 20Gi
+  logsRetention: 168h
+  chatId: ""
+  stackVersion: ""
+  lokiVersion: ""
+  alloyVersion: ""

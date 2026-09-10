@@ -1,0 +1,42 @@
+{{- if .Values.route.enabled }}
+{{- $name := include "service.name" . }}
+{{- $headers := .Values.route.responseHeaders }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "service.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - name: {{ .Values.route.gateway }}
+      namespace: {{ .Values.route.gatewayNamespace }}
+      {{- with .Values.route.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  hostnames:
+    {{- toYaml .Values.route.hostnames | nindent 4 }}
+  rules:
+    {{- range $process, $spec := .Values.processes }}
+    {{- if and (ne $process "web") $spec.port $spec.route }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ $spec.route }}
+      {{- include "service.responseHeaders" $headers | nindent 6 }}
+      backendRefs:
+        - name: {{ $name }}-{{ $process }}
+          port: {{ $spec.port }}
+    {{- end }}
+    {{- end }}
+    {{- with .Values.processes.web }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      {{- include "service.responseHeaders" $headers | nindent 6 }}
+      backendRefs:
+        - name: {{ $name }}
+          port: {{ .port }}
+    {{- end }}
+{{- end }}

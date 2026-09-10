@@ -1,0 +1,86 @@
+{{- $root := . }}
+{{- $name := include "service.name" . }}
+{{- range $process, $spec := .Values.processes }}
+{{- $port := $spec.port | default 0 | int }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}-{{ $process }}
+  labels:
+    {{- include "service.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $process }}
+spec:
+  {{- if ne $process "web" }}
+  replicas: {{ $spec.replicas | default 1 }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  {{- if $port }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ $root.Values.rollout.unavailable }}
+      maxSurge: {{ $root.Values.rollout.surge }}
+  {{- else }}
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "service.selector" (merge (dict "component" $process) $root) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "service.selector" (merge (dict "component" $process) $root) | nindent 8 }}
+      annotations:
+        checksum/config: {{ $root.Values.env | toYaml | sha256sum }}
+    spec:
+      serviceAccountName: {{ $name }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: {{ $spec.grace | default 30 }}
+      {{- include "service.pullSecrets" $root | nindent 6 }}
+      {{- include "service.podSecurity" $root | nindent 6 }}
+      containers:
+        - name: {{ $process }}
+          image: {{ include "service.image" $root }}
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          {{- with $spec.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            {{- include "service.env" (dict "root" $root "process" $process "port" ($port | default $root.Values.port)) | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ $name }}-config
+            - secretRef:
+                name: {{ $name }}-secrets
+          {{- if $port }}
+          ports:
+            - name: http
+              containerPort: {{ $port }}
+          {{- if eq $process "web" }}
+          {{- include "service.probes" (dict "root" $root "port" $port) | nindent 10 }}
+          {{- else }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ $port }}
+            periodSeconds: 10
+          {{- end }}
+          {{- end }}
+          {{- include "service.containerSecurity" $root | nindent 10 }}
+          resources:
+            {{- toYaml $spec.resources | nindent 12 }}
+          {{- if $root.Values.storage.enabled }}
+          volumeMounts:
+            - name: storage
+              mountPath: {{ $root.Values.storage.mount }}
+          {{- end }}
+      {{- if $root.Values.storage.enabled }}
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ $name }}-storage
+      {{- end }}
+---
+{{- end }}
