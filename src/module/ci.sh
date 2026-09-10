@@ -260,18 +260,20 @@ ci_accept () {
     warn "${finding} accepted via CVE_ALLOW."
 
 }
-## count the fixable CRITICAL findings of one image with trivy
+## count the fixable CRITICAL findings of one image with trivy — every one is printed, the ones CVE_IGNORE names are accepted
 ci_trivy () {
 
-    local image="${1:?Usage: ci trivy <image>}" report=""
+    local image="${1:?Usage: ci trivy <image>}" report="" ignore=""
 
     ensure trivy jq
 
     report="$(trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --format json --quiet "${image}")"
+    ignore="$(jq -cn --arg list "${CVE_IGNORE:-}" '$list | gsub(","; " ") | split(" ") | map(select(length > 0))')"
 
-    jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? | "  \(.VulnerabilityID)  \(.PkgName) \(.InstalledVersion) → \(.FixedVersion)  (\($target))"' <<< "${report}" >&2
+    jq -r --argjson ignore "${ignore}" '.Results[]? | .Target as $target | .Vulnerabilities[]?
+        | "  \(.VulnerabilityID)  \(.PkgName) \(.InstalledVersion) → \(.FixedVersion)  (\($target))\(if (.VulnerabilityID | IN($ignore[])) then "  — accepted by CVE_IGNORE" else "" end)"' <<< "${report}" >&2
 
-    jq '[.Results[]?.Vulnerabilities // [] | length] | add // 0' <<< "${report}"
+    jq --argjson ignore "${ignore}" '[.Results[]? | (.Vulnerabilities // [])[] | select(.VulnerabilityID | IN($ignore[]) | not)] | length' <<< "${report}"
 
 }
 ## the CVE gate — every image scanned by trivy against one rule, wherever it lives: a fixable CRITICAL blocks unless accepted
