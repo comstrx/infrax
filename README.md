@@ -37,6 +37,15 @@ chmod +x ~/.local/bin/infrax
 infrax --help
 ```
 
+In a workflow — no token, the release's `SHA256SUMS` verify it:
+
+```yaml
+- uses: comstrx/infrax@v0.2.0
+- run: infrax -s light ci release
+  env:
+    JSON_ENV: ${{ toJSON(secrets) }}
+```
+
 ## Declare
 
 `infrax.env` at the root of the project repo — committed, no secrets:

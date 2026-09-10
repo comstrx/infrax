@@ -1,0 +1,44 @@
+name: infrax
+description: Install the infrax bundle this action is pinned to — the release's SHA256SUMS anchor it, a vendored copy is used when it matches
+author: comstrx
+
+branding:
+  icon: layers
+  color: blue
+
+inputs:
+  version:
+    description: The release to install (vX.Y.Z) — defaults to the tag this action is pinned to
+    required: false
+    default: ""
+  path:
+    description: The gitops path that may carry a vendored bundle
+    required: false
+    default: deploy
+
+runs:
+  using: composite
+  steps:
+    - name: Install infrax
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version || github.action_ref }}
+        DEPLOY_PATH: ${{ inputs.path }}
+        REPO: ${{ github.action_repository }}
+      run: |
+        set -Eeuo pipefail
+        [[ "${VERSION}" == v* ]] || { echo "::error::infrax installs a release tag (vX.Y.Z), got '${VERSION}' — pin the action to a tag or pass version"; exit 1; }
+        base="https://github.com/${REPO}/releases/download/${VERSION}"
+        anchor="$(mktemp -d)"
+        curl -fsSL --retry 3 "${base}/SHA256SUMS" -o "${anchor}/SHA256SUMS"
+        dir="${DEPLOY_PATH}"
+        if [[ -f "${dir}/infrax.sh" ]] && ( cd "${dir}" && sha256sum --check --quiet "${anchor}/SHA256SUMS" ); then
+          echo "Vendored bundle matches ${VERSION}"
+        else
+          echo "Vendored bundle absent or drifted from ${VERSION} — installing the release"
+          dir="${anchor}"
+          curl -fsSL --retry 3 "${base}/infrax.sh" -o "${dir}/infrax.sh"
+          ( cd "${dir}" && sha256sum --check --quiet SHA256SUMS )
+        fi
+        sudo install -m 0755 "${dir}/infrax.sh" /usr/local/bin/infrax
+        infrax --version
