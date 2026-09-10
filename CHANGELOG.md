@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6
+
+- The data chart carries no default probe — Helm merged its `tcpSocket` into a module's own `exec`, and the api server refused the postgresql and mysql StatefulSets for holding two handlers. A module with no probe falls back to its port.
+- The service chart carries no default `web` process for the same reason — a service that declares only a worker no longer grows a web Deployment.
+- The ClusterIssuer omits an empty `SSL_EMAIL` instead of rendering `null`, which cert-manager refused.
+- Chart tests render the payload's charts against these rules — kubeconform judges the schema, not what the api server refuses.
+
 ## 0.2.5
 
 - `CVE_IGNORE` accepts reviewed findings by name (`CVE-…`, `GHSA-…`, space or comma separated) — the gate still prints them, marked accepted, and any finding not named still blocks. `CVE_ALLOW` stays the one-release override.
