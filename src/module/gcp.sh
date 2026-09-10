@@ -171,15 +171,6 @@ gcp_registry_login () {
         || die "Artifact Registry login failed"
 
 }
-gcp_registry_criticals () {
-
-    local image=""
-
-    image="$(ci_image "${1:?Missing service}"):${2:?Missing image tag}"
-
-    ci_trivy "${image}"
-
-}
 gcp_registry_refresher () {
 
     local registry=""

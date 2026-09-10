@@ -271,7 +271,7 @@ ci_trivy () {
         | jq '[.Results[]?.Vulnerabilities // [] | length] | add // 0'
 
 }
-## the CVE gate — every image scanned, trivy where the registry is ours, the cloud's scanner where it is theirs; CRITICAL blocks unless accepted
+## the CVE gate — every image scanned by trivy against one rule, wherever it lives: a fixable CRITICAL blocks unless accepted
 ci_scan () {
 
     local service="" tag="" critical="" image=""
@@ -286,7 +286,7 @@ ci_scan () {
 
         step "Scanning ${image}"
 
-        if [[ -n "${REGISTRY}" ]]; then critical="$(ci_trivy "${image}")"; else critical="$(cloud registry_criticals "${service}" "${tag}")"; fi
+        critical="$(ci_trivy "${image}")"
 
         [[ "${critical}" =~ ^[0-9]+$ ]] || critical=0
 

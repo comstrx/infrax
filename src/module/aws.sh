@@ -196,25 +196,6 @@ aws_registry_login () {
         || die "ECR login failed"
 
 }
-aws_registry_criticals () {
-
-    local service="${1:?Missing service}" tag="${2:?Missing image tag}" critical="" repository="${PROJECT}/${1}"
-
-    ensure aws
-
-    aws ecr wait image-scan-complete --repository-name "${repository}" \
-        --image-id imageTag="${tag}" --region "${AWS_REGION}" \
-        || die "ECR scan never completed for ${service}:${tag}"
-
-    critical="$(aws ecr describe-image-scan-findings --repository-name "${repository}" \
-        --image-id imageTag="${tag}" --region "${AWS_REGION}" --no-paginate \
-        --query 'imageScanFindings.findingSeverityCounts.CRITICAL' --output text | sed -n '1p')"
-
-    [[ "${critical}" =~ ^[0-9]+$ ]] || critical=0
-
-    printf '%s' "${critical}"
-
-}
 aws_registry_refresher () {
 
     local registry=""
