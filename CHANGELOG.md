@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+- A tool's own login is flagged `ROOT_LOGIN=true` in its `module.env`, not `PASSWORD=true` — the flag shared its override name with the secret `<MODULE>_PASSWORD`, so a set password hid the flag and pgadmin4 never received its login.
+- The examples law knows the root password every module holds (`<MODULE>_PASSWORD` for each store, and each tool with `ROOT_LOGIN=true`) and scans the bundle's code without its tests — the dev bundle can no longer pass what the release fails.
+- `service_host` takes a service's first public name from the whole list — a service answering on two names no longer breaks the pipe that fed it.
+
 ## 0.2.1
 
 - aws derives the ECR registry from the account its credentials act in (asked once, remembered under the build dir) — the render matrix and the first release need neither an applied stack nor a hand-set `ECR_REGISTRY`. A pinned `ECR_REGISTRY` still wins.
