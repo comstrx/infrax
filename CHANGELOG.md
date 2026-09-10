@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- The CVE gate judges every image by one rule — trivy, fixable CRITICAL only — wherever the image lives. ECR's basic scan counted every CRITICAL, fixed or not (a trixie image carries ~50 kernel-header CVEs no container can reach), so the same image passed on one registry and blocked on another. The cloud `registry_criticals` verbs are gone.
+
 ## 0.2.2
 
 - A tool's own login is flagged `ROOT_LOGIN=true` in its `module.env`, not `PASSWORD=true` — the flag shared its override name with the secret `<MODULE>_PASSWORD`, so a set password hid the flag and pgadmin4 never received its login.
