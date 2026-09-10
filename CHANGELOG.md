@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- aws derives the ECR registry from the account its credentials act in (asked once, remembered under the build dir) — the render matrix and the first release need neither an applied stack nor a hand-set `ECR_REGISTRY`. A pinned `ECR_REGISTRY` still wins.
+
 ## 0.2.0
 
 The first release under the infrax name — a platform for any number of services, not one app.

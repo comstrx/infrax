@@ -40,7 +40,7 @@ infrax --help
 In a workflow — no token, the release's `SHA256SUMS` verify it:
 
 ```yaml
-- uses: comstrx/infrax@v0.2.0
+- uses: comstrx/infrax@v0.2.1
 - run: infrax -s light ci release
   env:
     JSON_ENV: ${{ toJSON(secrets) }}
@@ -107,7 +107,7 @@ Layout: `src/forge` the build system · `src/core` config, cli, payload, helpers
 ```bash
 infrax self version
 infrax self update            # the latest release, checksum verified
-infrax self update v0.2.0
+infrax self update v0.2.1
 ```
 
 ## Community

@@ -20,7 +20,7 @@ ci_registry () {
 
     [[ -n "${registry}" ]] || registry="$(cloud registry)"
 
-    [[ -n "${registry}" ]] || die "Missing REGISTRY — set it, or apply a stack whose cloud hosts one"
+    [[ -n "${registry}" ]] || die "Missing REGISTRY — set it, or give credentials for a cloud that hosts one"
 
     printf '%s' "${registry}"
 

@@ -150,7 +150,30 @@ aws_db_unguard () {
         || die "Cannot lower deletion protection on '${identifier}' — the destroy would die against it"
 
 }
+## the account these credentials act in — asked once, remembered under the build dir
+aws_account () {
+
+    local file="${BUILD_DIR}/aws/account" account=""
+
+    if [[ -s "${file}" ]]; then
+
+        cat "${file}"
+        return 0
+
+    fi
+
+    ensure aws
+
+    account="$(aws sts get-caller-identity --query Account --output text 2>/dev/null)" || return 1
+
+    ensure_dir "$(dirname "${file}")"
+    printf '%s' "${account}" > "${file}"
+    printf '%s' "${account}"
+
+}
 aws_registry () {
+
+    local account=""
 
     if [[ -n "${ECR_REGISTRY}" ]]; then
 
@@ -159,7 +182,9 @@ aws_registry () {
 
     fi
 
-    tofu_output registry 2>/dev/null || true
+    account="$(aws_account)" || return 0
+
+    printf '%s.dkr.ecr.%s.amazonaws.com' "${account}" "${AWS_REGION:?Missing AWS_REGION}"
 
 }
 aws_registry_login () {
