@@ -6,7 +6,9 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: {{ .Values.sslEmail }}
+    {{- with .Values.sslEmail }}
+    email: {{ . | quote }}
+    {{- end }}
     privateKeySecretRef:
       name: letsencrypt-account
     solvers:
