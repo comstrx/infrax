@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.4
+
+- The Debian-based runtime images (laravel, python) take the distribution's security updates at build time — a base image a week old no longer ships a CRITICAL the archive has already fixed. The distroless finals (go, rust, node) move with their base.
+- The CVE gate prints every fixable CRITICAL it blocks on — CVE, package, installed → fixed, target — so "review them" has something to review.
+
 ## 0.2.3
 
 - The CVE gate judges every image by one rule — trivy, fixable CRITICAL only — wherever the image lives. ECR's basic scan counted every CRITICAL, fixed or not (a trixie image carries ~50 kernel-header CVEs no container can reach), so the same image passed on one registry and blocked on another. The cloud `registry_criticals` verbs are gone.
