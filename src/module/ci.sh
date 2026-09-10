@@ -263,12 +263,15 @@ ci_accept () {
 ## count the fixable CRITICAL findings of one image with trivy
 ci_trivy () {
 
-    local image="${1:?Usage: ci trivy <image>}"
+    local image="${1:?Usage: ci trivy <image>}" report=""
 
     ensure trivy jq
 
-    trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --format json --quiet "${image}" \
-        | jq '[.Results[]?.Vulnerabilities // [] | length] | add // 0'
+    report="$(trivy image --scanners vuln --severity CRITICAL --ignore-unfixed --format json --quiet "${image}")"
+
+    jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? | "  \(.VulnerabilityID)  \(.PkgName) \(.InstalledVersion) → \(.FixedVersion)  (\($target))"' <<< "${report}" >&2
+
+    jq '[.Results[]?.Vulnerabilities // [] | length] | add // 0' <<< "${report}"
 
 }
 ## the CVE gate — every image scanned by trivy against one rule, wherever it lives: a fixable CRITICAL blocks unless accepted
