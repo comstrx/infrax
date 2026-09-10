@@ -12,3 +12,4 @@ target/
 *.tfstate
 *.tfstate.*
 *.plan
+.terraform.lock.hcl
