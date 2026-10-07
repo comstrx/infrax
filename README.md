@@ -7,7 +7,6 @@
   <br/>
 </div>
 
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 [![Bash 5+](https://img.shields.io/badge/bash-5%2B-4EAA25.svg)](https://www.gnu.org/software/bash/)
 [![ShellCheck](https://img.shields.io/badge/shellcheck-clean-brightgreen.svg)](https://www.shellcheck.net)
 [![CI](https://github.com/comstrx/infrax/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/comstrx/infrax/actions/workflows/ci.yml)
@@ -124,10 +123,6 @@ infrax self update v0.2.1
 
 ## License
 
-<code>infrax</code> is dual-licensed under either
-[MIT](https://github.com/comstrx/infrax/blob/main/LICENSE-MIT) or
-[Apache-2.0](https://github.com/comstrx/infrax/blob/main/LICENSE-APACHE), at your option.
+Copyright © 2026 Abdulrahman Yasser (comstrx).
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this work by you, as defined in the Apache-2.0 license, shall be
-dual-licensed as above, without any additional terms or conditions.
+Licensed under the [Apache License, Version 2.0](./LICENSE).
