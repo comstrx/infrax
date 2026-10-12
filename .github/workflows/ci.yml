@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Test
         run: bash src/main.sh test --check
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build
         run: bash src/main.sh build
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build
         run: bash src/main.sh build
@@ -69,7 +69,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Tag matches the bundle version
         run: '[[ "${GITHUB_REF_NAME}" == "$(bash src/main.sh --tag)" ]] || { echo "tag ${GITHUB_REF_NAME} ≠ $(bash src/main.sh --tag)"; exit 1; }'
