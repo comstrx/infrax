@@ -1,6 +1,6 @@
 [package]
 name         = "infra"
-version      = "0.0.2"
+version      = "0.1.1"
 edition      = "2024"
 rust-version = "1.99"
 license      = "Apache-2.0"
@@ -10,7 +10,7 @@ publish      = false
 description  = "An infrastructure engine: define, provision, deploy, operate and roll back."
 
 [dependencies]
-engine = { git = "https://github.com/comstrx/rustx.git", tag = "v0.0.2", version = "0.0.2", features = ["process"] }
+engine = { git = "https://github.com/comstrx/rustx.git", tag = "v0.1.1", version = "0.1.1", features = ["process"] }
 
 [dev-dependencies]
 criterion = { version = "=0.8.2", default-features = false, features = ["cargo_bench_support"] }
