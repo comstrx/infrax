@@ -1,4 +1,4 @@
-//! Scenario: the real `infra` binary: doctor, units rendered, a missing service, packages refused without a name, usage.
+//! Scenario: the real `infra` binary says hello, answers `--version`, and refuses what it does not know as usage.
 
 #[cfg(test)]
 mod tests {
@@ -8,11 +8,11 @@ mod tests {
     use std::process::Output;
     use std::path::Path;
 
-    fn run ( args: &[&str] ) -> IoResult<Output> {
+    fn run ( args: &[&str], env: &[( &str, &str )] ) -> IoResult<Output> {
 
         let mut command = Cargo::command(Path::new(env!("CARGO_MANIFEST_DIR")), "infra", false, "INFRA_").map_err(|failure| IoError::other(failure.to_string()))?;
 
-        command.args(args).output()
+        command.args(args).envs(env.iter().copied()).output()
 
     }
 
@@ -23,53 +23,35 @@ mod tests {
     }
 
     #[test]
-    fn doctor_reports_the_machine () {
+    fn hello_says_hello_and_logs_it () {
 
-        let output = run(&["doctor"]).ok();
-        let stdout = output.as_ref().map(|output| text(&output.stdout)).unwrap_or_default();
+        let plain  = run(&["hello"], &[]).ok();
+        let logged = run(&["hello"], &[( "INFRA_LOG", "info" )]).ok();
 
-        assert_eq!(output.and_then(|output| output.status.code()), Some(0));
-        assert!(stdout.starts_with("platform=") && stdout.contains(" cores=") && stdout.contains("\nhost=") && stdout.contains("\nmanager=") && stdout.contains("\nprovider="));
-
-    }
-
-    #[test]
-    fn a_unit_is_rendered_for_the_named_provider () {
-
-        let output = run(&["service", "show", "iam", "--command", "/opt/iam/bin/iam", "--arg=--serve", "--env", "IAM_LOG=info", "--provider", "systemd"]).ok();
-        let stdout = output.as_ref().map(|output| text(&output.stdout)).unwrap_or_default();
-
-        assert_eq!(output.and_then(|output| output.status.code()), Some(0));
-        assert!(stdout.starts_with("[Unit]\nDescription=iam\n"));
-        assert!(stdout.contains("\nExecStart=/opt/iam/bin/iam --serve\n") && stdout.contains("\nEnvironment=IAM_LOG=info\n"));
-
-        let plist = run(&["service", "show", "iam", "--command", "/opt/iam/bin/iam", "--provider", "launchd"]).ok().map(|output| text(&output.stdout)).unwrap_or_default();
-
-        assert!(plist.starts_with("<?xml") && plist.contains("<string>iam</string>"));
+        assert_eq!(plain.as_ref().and_then(|output| output.status.code()), Some(0));
+        assert_eq!(plain.map(|output| text(&output.stdout)), Some("hello world\n".to_owned()));
+        assert!(logged.is_some_and(|output| output.status.code() == Some(0) && text(&output.stdout) == "hello world\n" && text(&output.stderr).contains(" infra: hello")));
 
     }
 
     #[test]
-    fn a_missing_service_is_missing_and_bad_input_is_usage () {
+    fn the_version_is_answered_before_anything_else () {
 
-        let status = run(&["service", "status", "no-such-service-xyz"]).ok();
+        let output = run(&["--version"], &[]).ok();
 
-        assert!(status.as_ref().is_some_and(|output| output.status.code() == Some(0) && text(&output.stdout).trim() == "missing" || output.status.code() == Some(70)));
+        assert_eq!(output.as_ref().and_then(|output| output.status.code()), Some(0));
+        assert!(output.is_some_and(|output| text(&output.stdout).trim() == format!("infra {}", env!("CARGO_PKG_VERSION"))));
 
-        let none  = run(&[]).ok();
-        let odd   = run(&["dance"]).ok();
-        let short = run(&["service", "show"]).ok();
-        let flag  = run(&["service", "show", "iam"]).ok();
-        let bad   = run(&["service", "show", "iam", "--command", "/x", "--provider", "sysv"]).ok();
-        let pkg   = run(&["package", "frobnicate", "git"]).ok();
+    }
 
-        assert_eq!(none.as_ref().and_then(|output| output.status.code()), Some(64));
-        assert!(none.is_some_and(|output| text(&output.stderr).contains("in: infra doctor | service")));
-        assert_eq!(odd.and_then(|output| output.status.code()), Some(64));
-        assert_eq!(short.and_then(|output| output.status.code()), Some(64));
-        assert!(flag.is_some_and(|output| output.status.code() == Some(64) && text(&output.stderr).contains("--command is required")));
-        assert!(bad.is_some_and(|output| output.status.code() == Some(64) && text(&output.stderr).contains("sysv is not a provider")));
-        assert!(pkg.is_some_and(|output| output.status.code() == Some(64) || output.status.code() == Some(70)));
+    #[test]
+    fn no_command_and_an_unknown_command_are_usage () {
+
+        let none = run(&[], &[]).ok();
+        let odd  = run(&["dance"], &[]).ok();
+
+        assert!(none.is_some_and(|output| output.status.code() == Some(64) && text(&output.stderr).contains("in: infra hello")));
+        assert!(odd.is_some_and(|output| output.status.code() == Some(64) && text(&output.stderr).contains("does not know the command dance")));
 
     }
 

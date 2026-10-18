@@ -1,0 +1,6 @@
+vulnerabilities:
+  - id: GHSA-wrw7-89jp-8q8g
+    paths:
+      - '**/src-tauri/Cargo.lock'
+    statement: tauri 2 pins gtk-rs 0.18, whose glib has no fixed release in that line; the unsound VariantStrIter is never used by the host
+    expired_at: 2026-12-31

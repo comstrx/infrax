@@ -38,15 +38,15 @@ LICENSE
 **/*.pfx
 **/*.jks
 **/*.keystore
-**/*.mobileprovision
 **/*.cer
 **/*.crt
-**/*~
 **/.DS_Store
 **/Thumbs.db
 **/ehthumbs.db
 **/Desktop.ini
+**/*.mobileprovision
 **/*:Zone.Identifier
+**/*~
 
 **/*.log
 **/*.trace
@@ -61,9 +61,9 @@ LICENSE
 **/*.rs.bk
 **/*.rs.tmp
 **/*.pdb
-**/*.dSYM/
 **/mutants.out*/
 **/rustc-ice-*.txt
+**/src-tauri/gen/schemas/
 **/fuzz/artifacts/
 **/fuzz/corpus/
 **/fuzz/coverage/
@@ -80,7 +80,6 @@ LICENSE
 **/public/storage
 **/public/hot
 **/bootstrap/cache/*.php
-**/storage/geo/
 **/storage/logs/*
 **/storage/app/livewire-tmp/*
 **/storage/framework/sessions/*
@@ -96,6 +95,7 @@ LICENSE
 **/.phpactor.json
 **/Homestead.json
 **/Homestead.yaml
+**/public/index.html
 **/frankenphp
 **/frankenphp-worker.php
 

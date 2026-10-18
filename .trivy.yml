@@ -2,6 +2,7 @@ debug: false
 quiet: false
 insecure: false
 timeout: 10m0s
+ignorefile: .trivyignore.yaml
 
 db:
   no-progress: true

@@ -1,11 +1,7 @@
-//! The infrastructure tool: what this machine is, its services and its packages, driven by the engine.
+//! The infra tool: the whole lifecycle of a command-line tool on the engine, booted and logged, answering hello.
 
 mod arch;
 mod base;
-mod faults;
-mod doctor;
-mod package;
-mod service;
 
 use engine::error::Exit;
 

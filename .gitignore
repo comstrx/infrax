@@ -28,15 +28,15 @@
 **/*.pfx
 **/*.jks
 **/*.keystore
-**/*.mobileprovision
 **/*.cer
 **/*.crt
-**/*~
 **/.DS_Store
 **/Thumbs.db
 **/ehthumbs.db
 **/Desktop.ini
+**/*.mobileprovision
 **/*:Zone.Identifier
+**/*~
 
 **/*.log
 **/*.trace
@@ -51,9 +51,9 @@
 **/*.rs.bk
 **/*.rs.tmp
 **/*.pdb
-**/*.dSYM/
 **/mutants.out*/
 **/rustc-ice-*.txt
+**/src-tauri/gen/schemas/
 **/fuzz/artifacts/
 **/fuzz/corpus/
 **/fuzz/coverage/
@@ -70,7 +70,6 @@
 **/public/storage
 **/public/hot
 **/bootstrap/cache/*.php
-**/storage/geo/
 **/storage/logs/*
 **/storage/app/livewire-tmp/*
 **/storage/framework/sessions/*
@@ -86,6 +85,7 @@
 **/.phpactor.json
 **/Homestead.json
 **/Homestead.yaml
+**/public/index.html
 **/frankenphp
 **/frankenphp-worker.php
 
@@ -157,5 +157,3 @@
 **/.pytest_cache/
 **/.mypy_cache/
 **/.ruff_cache/
-
-**/public/index.html
