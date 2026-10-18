@@ -26,7 +26,6 @@ vulnerability:
   ignore-status: []
   ignore-unfixed: true
   skip-vex-repo-update: false
-
   severity-source:
     - auto
 
